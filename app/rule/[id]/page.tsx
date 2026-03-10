@@ -1,89 +1,118 @@
-import rules from '@/data/rules.json';
-import { notFound } from 'next/navigation';
-import { BackLink } from '@/components/back-link';
-import { FavoriteButton } from '@/components/favorite-button';
+import rules from "@/data/rules.json";
+import Link from "next/link";
 
-export default async function RuleDetailPage({ params }: { params: Promise<{ id: string }> }) {
+type CaselawLink = {
+  title: string;
+  citation: string;
+  url: string;
+  source: string;
+};
+
+type Rule = {
+  ruleNumber: string;
+  title: string;
+  article?: string;
+  summary?: string;
+  issues?: string[];
+  fullText: string;
+  caselawLinks?: CaselawLink[];
+};
+
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function RulePage({ params }: PageProps) {
   const { id } = await params;
-  const rule = rules.find((entry) => entry.ruleNumber === id);
 
-  if (!rule) notFound();
+  const rule = (rules as Rule[]).find((r) => r.ruleNumber === id);
+
+  if (!rule) {
+    return (
+      <main className="container">
+        <p>Rule not found.</p>
+        <Link href="/">Back</Link>
+      </main>
+    );
+  }
 
   return (
     <main className="container">
-      <BackLink />
 
-      <section className="hero">
-        <p className="kicker">Rule {rule.ruleNumber}</p>
-        <h1>{rule.title}</h1>
-        <p>Article {rule.articleNumber} · {rule.articleTitle}</p>
-      </section>
+      <Link href="/" className="back-link">
+        ← Back
+      </Link>
 
-      <div className="actions">
-        <FavoriteButton ruleNumber={rule.ruleNumber} />
-      </div>
+      <h1>
+        Rule {rule.ruleNumber}
+      </h1>
 
-      <p className="section-title">Summary</p>
+      <h2>{rule.title}</h2>
+
+      {rule.summary && (
+        <section className="panel">
+          <h3>Summary</h3>
+          <p>{rule.summary}</p>
+        </section>
+      )}
+
       <section className="panel">
-        {rule.plainEnglishSummary}
+        <h3>Rule Text</h3>
+        <p style={{ whiteSpace: "pre-wrap" }}>
+          {rule.fullText}
+        </p>
       </section>
 
-      <p className="section-title">Full Text</p>
-      <section className="panel" style={{ whiteSpace: 'pre-wrap' }}>
-        {rule.fullText}
-      </section>
-
-      {rule.practiceNotes.length ? (
-        <>
-          <p className="section-title">Practice Notes</p>
-          <section className="panel">
-            {rule.practiceNotes.map((note) => <p key={note}>{note}</p>)}
-          </section>
-        </>
-      ) : null}
-
-      {rule.commonObjections.length ? (
-        <>
-          <p className="section-title">Common Objections</p>
-          <section className="tags">
-            {rule.commonObjections.map((item) => <span className="tag" key={item}>{item}</span>)}
-          </section>
-        </>
-      ) : null}
-
-      {rule.keyConcepts.length ? (
-        <>
-          <p className="section-title">Keywords</p>
-          <section className="tags">
-            {rule.keyConcepts.map((item) => <span className="tag" key={item}>{item}</span>)}
-          </section>
-        </>
-      ) : null}
-
-      <p className="section-title">Relevant Caselaw</p>
       <section className="panel">
-        {rule.caselawLinks && rule.caselawLinks.length > 0 ? rule.caselawLinks.map((item: {
-			title: string;
-			citation: string;
-			url: string;
-			source: string;
-		}) => (
-			<a key={item.url} className="case-link" href={item.url} target="_blank" rel="noreferrer">
-				<strong>{item.title}</strong>
-				<div className="meta">{item.citation}</div>
-				<div className="meta">{item.source}</div>
-			</a>
-		)) : (
-          <>
-            <a className="case-link" href={`https://www.sccourts.org/opinions-orders/opinions/opinion-search/?q=rule+${encodeURIComponent(rule.ruleNumber)}`} target="_blank" rel="noreferrer">
-              <strong>Search South Carolina Judicial Branch opinions for Rule {rule.ruleNumber}</strong>
+        <h3>Relevant Caselaw</h3>
+
+        {rule.caselawLinks && rule.caselawLinks.length > 0 ? (
+          rule.caselawLinks.map((item: CaselawLink) => (
+            <a
+              key={item.url}
+              className="case-link"
+              href={item.url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <strong>{item.title}</strong>
+              <div className="meta">{item.citation}</div>
+              <div className="meta">{item.source}</div>
             </a>
-            <a className="case-link" href={`https://law.justia.com/search?query=South+Carolina+Rule+${encodeURIComponent(rule.ruleNumber)}`} target="_blank" rel="noreferrer">
-              <strong>Search Justia South Carolina cases for Rule {rule.ruleNumber}</strong>
+          ))
+        ) : (
+          <>
+            <a
+              className="case-link"
+              href={`https://www.sccourts.org/opinions-orders/opinions/opinion-search/?q=Rule%20${rule.ruleNumber}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Search South Carolina Judicial Branch opinions for Rule {rule.ruleNumber}
+            </a>
+
+            <a
+              className="case-link"
+              href={`https://law.justia.com/search?query=South%20Carolina%20Rule%20${rule.ruleNumber}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Search Justia for Rule {rule.ruleNumber}
             </a>
           </>
         )}
       </section>
+
+      {rule.issues && rule.issues.length > 0 && (
+        <section className="panel">
+          <h3>Issues</h3>
+          <ul>
+            {rule.issues.map((issue) => (
+              <li key={issue}>{issue}</li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
 }
